@@ -58,8 +58,21 @@ func main() {
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", fileServer)))
 	mux.HandleFunc("/admin/metrics", methodHandler("GET", apiCfg.metricsHandler))
 	mux.HandleFunc("/admin/reset", methodHandler("POST", apiCfg.adminResetHandler))
-	mux.HandleFunc("/api/validate_chirp", methodHandler("POST", apiCfg.validateChirpHandler))
 	mux.HandleFunc("/api/users", methodHandler("POST", apiCfg.handlerCreateUser))
+
+	mux.HandleFunc("/api/chirps", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "POST":
+			apiCfg.createChirpHandler(w, r)
+		case "GET":
+			apiCfg.listallChirpsHandler(w, r)
+		default:
+			w.Header().Set("Allow", "GET, POST")
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	mux.HandleFunc("/api/chirps/", methodHandler("GET", apiCfg.getChirpHandler))
 
 	server := &http.Server{
 		Addr:    ":8080",
