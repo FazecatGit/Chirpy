@@ -4,9 +4,15 @@ import (
 	"net/http"
 )
 
-func (cfg *apiConfig) resetHandler(w http.ResponseWriter, r *http.Request) {
-	cfg.fileServerHits.Store(0)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Hits reset to 0\n"))
+func (cfg *apiConfig) adminResetHandler(w http.ResponseWriter, r *http.Request) {
+	if cfg.Platform != "dev" {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+	err := cfg.DB.DeleteAllUsers(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to reset database")
+		return
+	}
+	respondWithJson(w, http.StatusOK, map[string]string{"status": "database reset"})
 }
