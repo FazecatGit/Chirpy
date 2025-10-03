@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,12 +43,7 @@ func (cfg *apiConfig) listallChirpsHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg *apiConfig) getChirpHandler(w http.ResponseWriter, r *http.Request) {
-	chirpIDStr := strings.TrimPrefix(r.URL.Path, "/api/chirps/")
-	if chirpIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "Chirp ID is required")
-		return
-	}
-
+	chirpIDStr := r.PathValue("chirp_id")
 	chirpID, err := uuid.Parse(chirpIDStr)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid UUID")

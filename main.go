@@ -20,6 +20,7 @@ type apiConfig struct {
 	fileServerHits atomic.Int32
 	DB             *database.Queries
 	Platform       string
+	JWTSecret      string
 }
 
 type User struct {
@@ -30,6 +31,7 @@ type User struct {
 }
 
 func main() {
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found")
@@ -45,6 +47,7 @@ func main() {
 		DB:       database.New(db),
 		Platform: os.Getenv("PLATFORM"),
 	}
+	apiCfg.JWTSecret = os.Getenv("JWT_SECRET")
 
 	fileServer := http.FileServer(http.Dir("."))
 	mux := http.NewServeMux()
@@ -59,6 +62,7 @@ func main() {
 	mux.HandleFunc("/admin/metrics", methodHandler("GET", apiCfg.metricsHandler))
 	mux.HandleFunc("/admin/reset", methodHandler("POST", apiCfg.adminResetHandler))
 	mux.HandleFunc("/api/users", methodHandler("POST", apiCfg.handlerCreateUser))
+	mux.HandleFunc("/api/login", methodHandler("POST", apiCfg.handlerLoginUser))
 
 	mux.HandleFunc("/api/chirps", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -72,7 +76,7 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("/api/chirps/", methodHandler("GET", apiCfg.getChirpHandler))
+	mux.HandleFunc("/api/chirps/{chirp_id}", methodHandler("GET", apiCfg.getChirpHandler))
 
 	server := &http.Server{
 		Addr:    ":8080",
