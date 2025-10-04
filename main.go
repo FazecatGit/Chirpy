@@ -61,8 +61,10 @@ func main() {
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", fileServer)))
 	mux.HandleFunc("/admin/metrics", methodHandler("GET", apiCfg.metricsHandler))
 	mux.HandleFunc("/admin/reset", methodHandler("POST", apiCfg.adminResetHandler))
-	mux.HandleFunc("/api/users", methodHandler("POST", apiCfg.handlerCreateUser))
 	mux.HandleFunc("/api/login", methodHandler("POST", apiCfg.handlerLoginUser))
+	mux.HandleFunc("/api/refresh", methodHandler("POST", apiCfg.handlerRefreshToken))
+	mux.HandleFunc("/api/revoke", methodHandler("POST", apiCfg.handlerRevokeToken))
+	mux.HandleFunc("/api/chirps/{chirp_id}", methodHandler("DELETE", apiCfg.deleteChirpHandler))
 
 	mux.HandleFunc("/api/chirps", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -72,6 +74,18 @@ func main() {
 			apiCfg.listallChirpsHandler(w, r)
 		default:
 			w.Header().Set("Allow", "GET, POST")
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	mux.HandleFunc("/api/users", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			apiCfg.handlerCreateUser(w, r)
+		case http.MethodPut:
+			apiCfg.handlerAuthorizeUser(w, r)
+		default:
+			w.Header().Set("Allow", "POST, PUT")
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
 	})

@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/FazecatGit/Chirpy/internal/auth"
+	"github.com/FazecatGit/Chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email            string `json:"email"`
-		Password         string `json:"password"`
-		ExpiresInSeconds int64  `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -38,21 +38,38 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.ExpiresInSeconds == 0 || req.ExpiresInSeconds > 3600 {
-		req.ExpiresInSeconds = 3600
-	}
-	token, err := auth.MakeJWT(user.ID, cfg.JWTSecret, (time.Duration(req.ExpiresInSeconds) * time.Second))
+	token, err := auth.MakeJWT(user.ID, cfg.JWTSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
 
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate refresh token")
+		return
+	}
+
+	expiresAt := time.Now().Add(60 * 24 * time.Hour)
+
+	rtParams := database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: expiresAt,
+	}
+	_, err = cfg.DB.CreateRefreshToken(r.Context(), rtParams)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to persist refresh token")
+		return
+	}
+
 	respondWithJson(w, http.StatusOK, map[string]interface{}{
-		"id":         user.ID,
-		"email":      user.Email,
-		"created_at": user.CreatedAt,
-		"updated_at": user.UpdatedAt,
-		"token":      token,
+		"id":            user.ID,
+		"email":         user.Email,
+		"created_at":    user.CreatedAt,
+		"updated_at":    user.UpdatedAt,
+		"token":         token,
+		"refresh_token": refreshToken,
 	})
 
 }
