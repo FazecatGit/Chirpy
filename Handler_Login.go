@@ -70,6 +70,7 @@ func (cfg *apiConfig) handlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		"updated_at":    user.UpdatedAt,
 		"token":         token,
 		"refresh_token": refreshToken,
+		"is_chirpy_red": user.IsChirpyRed,
 	})
 
 }

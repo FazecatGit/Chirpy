@@ -35,12 +35,18 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user := User{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
+	user := struct {
+		ID          string `json:"id"`
+		Email       string `json:"email"`
+		CreatedAt   string `json:"created_at"`
+		UpdatedAt   string `json:"updated_at"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
+	}{
+		ID:          dbUser.ID.String(),
+		Email:       dbUser.Email,
+		CreatedAt:   dbUser.CreatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		UpdatedAt:   dbUser.UpdatedAt.Format("2006-01-02T15:04:05.000Z07:00"),
+		IsChirpyRed: dbUser.IsChirpyRed,
 	}
-
 	respondWithJson(w, http.StatusCreated, user)
 }

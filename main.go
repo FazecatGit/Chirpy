@@ -24,10 +24,11 @@ type apiConfig struct {
 }
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
+	ID          uuid.UUID `json:"id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Email       string    `json:"email"`
+	IsChirpyRed bool      `json:"is_chirpy_red"`
 }
 
 func main() {
@@ -68,6 +69,7 @@ func main() {
 	mux.HandleFunc("/api/login", methodHandler("POST", apiCfg.handlerLoginUser))
 	mux.HandleFunc("/api/refresh", methodHandler("POST", apiCfg.handlerRefreshToken))
 	mux.HandleFunc("/api/revoke", methodHandler("POST", apiCfg.handlerRevokeToken))
+	mux.HandleFunc("/api/polka/webhooks", methodHandler("POST", apiCfg.polkaWebhookHandler))
 
 	mux.HandleFunc("/api/chirps", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
