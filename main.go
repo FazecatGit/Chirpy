@@ -49,6 +49,10 @@ func main() {
 	}
 	apiCfg.JWTSecret = os.Getenv("JWT_SECRET")
 
+	if apiCfg.JWTSecret == "" {
+		log.Fatal("JWT_SECRET environment variable is not set")
+	}
+
 	fileServer := http.FileServer(http.Dir("."))
 	mux := http.NewServeMux()
 
@@ -64,7 +68,6 @@ func main() {
 	mux.HandleFunc("/api/login", methodHandler("POST", apiCfg.handlerLoginUser))
 	mux.HandleFunc("/api/refresh", methodHandler("POST", apiCfg.handlerRefreshToken))
 	mux.HandleFunc("/api/revoke", methodHandler("POST", apiCfg.handlerRevokeToken))
-	mux.HandleFunc("/api/chirps/{chirp_id}", methodHandler("DELETE", apiCfg.deleteChirpHandler))
 
 	mux.HandleFunc("/api/chirps", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -90,7 +93,16 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("/api/chirps/{chirp_id}", methodHandler("GET", apiCfg.getChirpHandler))
+	mux.HandleFunc("/api/chirps/{chirp_id}", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			apiCfg.getChirpHandler(w, r)
+		case "DELETE":
+			apiCfg.deleteChirpHandler(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	server := &http.Server{
 		Addr:    ":8080",
