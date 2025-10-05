@@ -3,18 +3,53 @@ package main
 import (
 	"database/sql"
 	"net/http"
+	"sort"
 	"time"
 
+	"github.com/FazecatGit/Chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
 func (cfg *apiConfig) listallChirpsHandler(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.DB.ListChirps(r.Context())
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirps")
-		return
+	ctx := r.Context()
+	authorID := r.URL.Query().Get("author_id")
+	sortOrder := r.URL.Query().Get("sort") // "asc" or "desc"
+
+	var chirps []database.Chirp
+	var err error
+
+	if authorID != "" {
+		userUUID, err := uuid.Parse(authorID)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid author_id")
+			return
+		}
+		chirps, err = cfg.DB.ListChirpsByAuthor(ctx, userUUID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirps by author")
+			return
+		}
+	} else {
+		chirps, err = cfg.DB.ListChirps(ctx)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirps")
+			return
+		}
 	}
 
+	// In-memory sorting
+	if sortOrder == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		})
+	} else {
+		// default ascending
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+		})
+	}
+
+	// Prepare response
 	var response []struct {
 		ID        uuid.UUID `json:"id"`
 		CreatedAt time.Time `json:"created_at"`

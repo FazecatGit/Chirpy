@@ -21,6 +21,7 @@ type apiConfig struct {
 	DB             *database.Queries
 	Platform       string
 	JWTSecret      string
+	PolkaKey       string
 }
 
 type User struct {
@@ -43,10 +44,14 @@ func main() {
 	if err != nil {
 		log.Fatal("Cannot connect to database:", err)
 	}
+	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	apiCfg := &apiConfig{
-		DB:       database.New(db),
-		Platform: os.Getenv("PLATFORM"),
+		DB:        database.New(db),
+		Platform:  os.Getenv("PLATFORM"),
+		JWTSecret: jwtSecret,
+		PolkaKey:  polkaKey,
 	}
 	apiCfg.JWTSecret = os.Getenv("JWT_SECRET")
 

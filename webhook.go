@@ -5,10 +5,22 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/FazecatGit/Chirpy/internal/auth"
 	"github.com/google/uuid"
 )
 
 func (cfg *apiConfig) polkaWebhookHandler(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "missing or malformed API key")
+		return
+	}
+
+	if apiKey != cfg.PolkaKey {
+		respondWithError(w, http.StatusUnauthorized, "invalid API key")
+		return
+	}
+
 	var req struct {
 		Event string `json:"event"`
 		Data  struct {
@@ -29,7 +41,8 @@ func (cfg *apiConfig) polkaWebhookHandler(w http.ResponseWriter, r *http.Request
 			http.Error(w, "invalid user ID", http.StatusBadRequest)
 			return
 		}
-		user, err := cfg.DB.UpgradeUserToChirpyRed(r.Context(), userUUID)
+
+		_, err = cfg.DB.UpgradeUserToChirpyRed(r.Context(), userUUID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "user not found", http.StatusNotFound)
@@ -39,7 +52,6 @@ func (cfg *apiConfig) polkaWebhookHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		_ = user
 		w.WriteHeader(http.StatusNoContent)
 
 	default:
